@@ -1,58 +1,55 @@
 import mochiImg from "@/assets/mochi.png";
 import { motion } from "framer-motion";
+import { useState } from "react";
 
 interface LandingPageProps {
   onStart: (username: string) => void;
 }
 
-import { useState } from "react";
-
 const LandingPage = ({ onStart }: LandingPageProps) => {
   const [username, setUsername] = useState("");
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
+    <div className="flex min-h-screen flex-col items-center justify-center px-6 py-10">
+      {/* Logo */}
+      <motion.h1
+        initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="mb-6"
+        transition={{ duration: 0.5 }}
+        className="mb-8 font-display text-6xl font-900 tracking-tight text-gradient-primary sm:text-7xl"
       >
-        <h1 className="font-display text-5xl font-900 tracking-tight text-gradient-primary sm:text-7xl">
-          GenCross
-        </h1>
-      </motion.div>
+        GenCross
+      </motion.h1>
 
+      {/* Mochi + speech bubble */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.3, duration: 0.5 }}
-        className="relative mb-8 flex items-end gap-3"
+        transition={{ delay: 0.2, duration: 0.4 }}
+        className="mb-8 flex flex-col items-center gap-2"
       >
-        {/* Speech bubble */}
-        <div className="relative max-w-xs rounded-2xl border border-border bg-secondary px-5 py-4 shadow-soft">
-          <p className="font-body text-sm leading-relaxed text-foreground sm:text-base">
-            How well do you know GenLayer? Let's find out! 🚀
-          </p>
-          {/* Bubble tail pointing right */}
-          <div className="absolute -right-2 bottom-4 h-4 w-4 rotate-45 border-b border-r border-border bg-secondary" />
-        </div>
         <img
           src={mochiImg}
           alt="Mochi, GenLayer's mascot"
-          className="h-24 w-24 object-contain sm:h-32 sm:w-32"
+          className="h-28 w-28 object-contain sm:h-36 sm:w-36"
         />
+        <div className="relative mt-1 max-w-[280px] rounded-xl border border-border bg-secondary px-4 py-3 shadow-soft">
+          <div className="absolute -top-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 border-l border-t border-border bg-secondary" />
+          <p className="text-center font-body text-sm leading-relaxed text-foreground">
+            How well do you know GenLayer? Let's find out! 🚀
+          </p>
+        </div>
       </motion.div>
 
+      {/* Form */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.5 }}
-        className="w-full max-w-sm space-y-5"
+        transition={{ delay: 0.4, duration: 0.4 }}
+        className="w-full max-w-xs space-y-4"
       >
-        <p className="text-center text-sm leading-relaxed text-muted-foreground">
-          Fill in the crossword using the clues. Use the on-screen keyboard to
-          enter letters. Solve all clues as fast as you can.
+        <p className="text-center text-xs leading-relaxed text-muted-foreground sm:text-sm">
+          Fill in the crossword using the clues. Solve all clues as fast as you can!
         </p>
 
         <input
