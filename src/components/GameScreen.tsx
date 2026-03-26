@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { clues, buildGrid, getCellsForClue, type ClueData } from "@/data/crosswordData";
 import Keyboard from "./Keyboard";
 import CluesPanel from "./CluesPanel";
@@ -11,7 +11,6 @@ interface GameScreenProps {
 }
 
 const { cells: gridCells, gridRows, gridCols } = buildGrid();
-
 const sortedClues = [...clues].sort((a, b) => a.clueNumber - b.clueNumber);
 
 const GameScreen = ({ username, onComplete }: GameScreenProps) => {
@@ -23,18 +22,26 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
   const [elapsed, setElapsed] = useState(0);
   const [showCluesPanel, setShowCluesPanel] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
-  const gridRef = useRef<HTMLDivElement>(null);
 
   const activeClue = sortedClues[activeClueIdx];
   const activeCells = getCellsForClue(activeClue);
 
-  // Timer
+  // Set of locked (solved) cell keys
+  const lockedCells = useMemo(() => {
+    const locked = new Set<string>();
+    for (const clue of sortedClues) {
+      if (solvedClues.has(clue.clueNumber)) {
+        getCellsForClue(clue).forEach((k) => locked.add(k));
+      }
+    }
+    return locked;
+  }, [solvedClues]);
+
   useEffect(() => {
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(timerRef.current);
   }, []);
 
-  // Check if a clue is solved
   const checkClue = useCallback(
     (clue: ClueData, inputs: Map<string, string>) => {
       const keys = getCellsForClue(clue);
@@ -44,7 +51,6 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
     []
   );
 
-  // Auto-advance to next unsolved clue when current is solved
   const advanceToNextUnsolved = useCallback(
     (newSolved: Set<number>) => {
       if (newSolved.size === sortedClues.length) return;
@@ -62,7 +68,6 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
   const handleKey = useCallback(
     (key: string) => {
       if (solvedClues.has(activeClue.clueNumber)) {
-        // If current clue solved, advance
         advanceToNextUnsolved(solvedClues);
         return;
       }
@@ -71,15 +76,26 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
         const next = new Map(prev);
         const cellKey = activeCells[activeCellIdx];
 
+        // Don't allow editing locked cells
+        if (lockedCells.has(cellKey)) {
+          // Skip to next unlocked cell
+          let nextIdx = activeCellIdx + (key === "BACKSPACE" ? -1 : 1);
+          nextIdx = Math.max(0, Math.min(nextIdx, activeCells.length - 1));
+          setActiveCellIdx(nextIdx);
+          return prev;
+        }
+
         if (key === "BACKSPACE") {
           next.delete(cellKey);
-          setActiveCellIdx((i) => Math.max(0, i - 1));
+          // Move back, skipping locked cells
+          let ni = activeCellIdx - 1;
+          while (ni >= 0 && lockedCells.has(activeCells[ni])) ni--;
+          setActiveCellIdx(Math.max(0, ni >= 0 ? ni : activeCellIdx));
           return next;
         }
 
         next.set(cellKey, key);
 
-        // Check completion
         const clue = activeClue;
         const chars = clue.answer.split("");
         const keys = activeCells;
@@ -88,7 +104,6 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
           playSuccessSound();
           const newSolved = new Set(solvedClues);
           newSolved.add(clue.clueNumber);
-          // Also check other clues that may now be complete due to shared cells
           for (const c of sortedClues) {
             if (!newSolved.has(c.clueNumber) && checkClue(c, next)) {
               newSolved.add(c.clueNumber);
@@ -103,8 +118,9 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
             setTimeout(() => advanceToNextUnsolved(newSolved), 300);
           }
         } else {
-          // Move to next empty cell
           let nextIdx = activeCellIdx + 1;
+          // Skip locked cells
+          while (nextIdx < activeCells.length && lockedCells.has(activeCells[nextIdx])) nextIdx++;
           if (nextIdx >= activeCells.length) nextIdx = activeCells.length - 1;
           setActiveCellIdx(nextIdx);
         }
@@ -112,17 +128,15 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
         return next;
       });
     },
-    [activeClue, activeCellIdx, activeCells, solvedClues, elapsed, onComplete, advanceToNextUnsolved, checkClue]
+    [activeClue, activeCellIdx, activeCells, solvedClues, elapsed, onComplete, advanceToNextUnsolved, checkClue, lockedCells]
   );
 
   const handleCellClick = (cellKey: string) => {
-    // Find which clue this cell belongs to and select it
     const idx = activeCells.indexOf(cellKey);
     if (idx >= 0) {
       setActiveCellIdx(idx);
       return;
     }
-    // Find a clue that contains this cell
     for (let i = 0; i < sortedClues.length; i++) {
       const keys = getCellsForClue(sortedClues[i]);
       const ci = keys.indexOf(cellKey);
@@ -136,7 +150,6 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
 
   const handleHint = () => {
     if (hintsUsed >= 5) return;
-    // Find first empty or wrong cell in active clue
     const chars = activeClue.answer.split("");
     for (let i = 0; i < chars.length; i++) {
       if (userInputs.get(activeCells[i]) !== chars[i]) {
@@ -162,33 +175,36 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
     setActiveCellIdx(0);
   };
 
-  // Calculate cell size based on viewport
-  const cellSize = Math.min(Math.floor((window.innerWidth - 32) / gridCols), 28);
+  // Responsive cell size: fit grid in available space
+  const cellSize = useMemo(() => {
+    const maxW = Math.floor((Math.min(window.innerWidth, 500) - 16) / gridCols);
+    const maxH = Math.floor((window.innerHeight * 0.42) / gridRows);
+    return Math.max(12, Math.min(maxW, maxH, 28));
+  }, []);
 
   const highlightedSet = new Set(activeCells);
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex h-[100dvh] flex-col overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h1 className="font-display text-xl font-900 text-gradient-primary sm:text-2xl">GenCross</h1>
-        <div className="flex items-center gap-3">
+      <header className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
+        <h1 className="font-display text-lg font-900 text-gradient-primary sm:text-xl">GenCross</h1>
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setShowCluesPanel(true)}
-            className="rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-600 text-secondary-foreground transition-all hover:bg-muted"
+            className="rounded-md border border-border bg-secondary px-2.5 py-1 text-xs font-600 text-secondary-foreground transition-all hover:bg-muted"
           >
             All Clues
           </button>
-          <div className="rounded-md bg-secondary px-3 py-1.5 font-display text-sm font-600 text-foreground">
+          <div className="rounded-md bg-secondary px-2.5 py-1 font-display text-xs font-600 text-foreground sm:text-sm">
             ⏱ {formatTime(elapsed)}
           </div>
         </div>
       </header>
 
       {/* Grid */}
-      <div className="flex-1 overflow-auto px-2 py-3">
+      <div className="flex shrink grow items-center justify-center overflow-hidden px-1 py-1">
         <div
-          ref={gridRef}
           className="mx-auto"
           style={{
             display: "grid",
@@ -203,20 +219,26 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
               const key = `${r},${c}`;
               const cell = gridCells.get(key);
               if (!cell) {
-                return <div key={key} />;
+                return (
+                  <div
+                    key={key}
+                    className="bg-foreground/90"
+                    style={{ width: cellSize, height: cellSize }}
+                  />
+                );
               }
 
               const isHighlighted = highlightedSet.has(key);
               const isActive = activeCells[activeCellIdx] === key;
-              const isSolved = cell.clueNumbers.every((cn) => solvedClues.has(cn));
+              const isLocked = lockedCells.has(key);
               const userLetter = userInputs.get(key) || "";
 
               return (
                 <div
                   key={key}
                   onClick={() => handleCellClick(key)}
-                  className={`relative flex cursor-pointer items-center justify-center border transition-all ${
-                    isSolved
+                  className={`relative flex cursor-pointer items-center justify-center border transition-colors ${
+                    isLocked
                       ? "cell-correct"
                       : isActive
                       ? "cell-active border-2"
@@ -224,16 +246,12 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
                       ? "cell-highlighted"
                       : "border-border bg-card"
                   }`}
-                  style={{
-                    width: cellSize,
-                    height: cellSize,
-                    fontSize: cellSize * 0.5,
-                  }}
+                  style={{ width: cellSize, height: cellSize, fontSize: cellSize * 0.48 }}
                 >
                   {cell.displayNumber && (
                     <span
-                      className="absolute left-0.5 top-0 font-display font-600 leading-none text-muted-foreground"
-                      style={{ fontSize: cellSize * 0.25 }}
+                      className="absolute left-px top-0 font-display font-700 leading-none text-muted-foreground"
+                      style={{ fontSize: Math.max(6, cellSize * 0.22) }}
                     >
                       {cell.displayNumber}
                     </span>
@@ -246,37 +264,33 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
         </div>
       </div>
 
-      {/* Clue bar + keyboard */}
-      <div className="border-t border-border bg-background pb-safe">
-        {/* Active clue */}
-        <div className="flex items-center gap-2 px-3 py-2">
+      {/* Bottom: clue bar + hint + keyboard */}
+      <div className="shrink-0 border-t border-border bg-background pb-safe">
+        <div className="flex items-center gap-1.5 px-2 py-1.5">
           <button
             onClick={() => navigateClue(-1)}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground transition-all hover:brightness-110"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-sm text-primary-foreground"
           >
             ‹
           </button>
-          <div className="flex-1 text-center text-sm font-500 text-foreground">
+          <div className="flex-1 text-center text-xs font-500 leading-tight text-foreground sm:text-sm">
             <span className="font-700 text-primary">{activeClue.clueNumber}.</span>{" "}
             {activeClue.clueText}
-            <span className="ml-1 text-xs text-muted-foreground">
-              ({activeClue.direction})
-            </span>
+            <span className="ml-1 text-[10px] text-muted-foreground">({activeClue.direction})</span>
           </div>
           <button
             onClick={() => navigateClue(1)}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground transition-all hover:brightness-110"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-sm text-primary-foreground"
           >
             ›
           </button>
         </div>
 
-        {/* Hint button */}
-        <div className="flex justify-center pb-1">
+        <div className="flex justify-center pb-0.5">
           <button
             onClick={handleHint}
             disabled={hintsUsed >= 5}
-            className="rounded-md border border-accent bg-background px-4 py-1 text-xs font-600 text-accent transition-all hover:bg-accent/5 disabled:opacity-40"
+            className="rounded-md border border-accent bg-background px-3 py-0.5 text-xs font-600 text-accent transition-all hover:bg-accent/5 disabled:opacity-40"
           >
             💡 Hint ({5 - hintsUsed} left)
           </button>
