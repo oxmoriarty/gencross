@@ -82,12 +82,13 @@
     background-color: hsl(145 60% 88%);
     border-color: hsl(145 50% 65%);
   }
-  .cell-active {
-    background-color: hsl(var(--primary) / 0.15);
-    border-color: hsl(var(--primary));
+  .cell-active-current {
+    background-color: hsl(var(--primary) / 0.3);
+    border: 2px solid hsl(var(--primary));
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.4), inset 0 0 6px hsl(var(--primary) / 0.15);
   }
   .cell-highlighted {
-    background-color: hsl(var(--primary) / 0.08);
-    border-color: hsl(var(--primary) / 0.4);
+    background-color: hsl(var(--primary) / 0.12);
+    border: 1px solid hsl(var(--primary) / 0.5);
   }
 }

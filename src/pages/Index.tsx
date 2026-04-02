@@ -14,7 +14,6 @@ const Index = () => {
   const [finalScore, setFinalScore] = useState(0);
   const [gridSnapshot, setGridSnapshot] = useState<Map<string, string>>(new Map());
   const [hintsUsed] = useState(0);
-  const [returnTo, setReturnTo] = useState<Screen>("landing");
 
   const handleStart = useCallback((name: string) => {
     setUsername(name);
@@ -37,18 +36,13 @@ const Index = () => {
     setScreen("game");
   }, []);
 
-  const handleShowLeaderboard = useCallback((from: Screen) => {
-    setReturnTo(from);
-    setScreen("leaderboard");
-  }, []);
-
   if (screen === "landing") {
     return (
       <div>
         <LandingPage onStart={handleStart} />
         <div className="flex justify-center pb-8">
           <button
-            onClick={() => handleShowLeaderboard("landing")}
+            onClick={() => setScreen("leaderboard")}
             className="rounded-md border border-border px-4 py-2 text-sm font-600 text-muted-foreground transition-all hover:bg-muted"
           >
             🏆 View Leaderboard
@@ -70,12 +64,11 @@ const Index = () => {
         score={finalScore}
         onPlayAgain={handlePlayAgain}
         gridSnapshot={gridSnapshot}
-        onShowLeaderboard={() => handleShowLeaderboard("complete")}
       />
     );
   }
 
-  return <Leaderboard onBack={() => setScreen(returnTo)} />;
+  return <Leaderboard onBack={() => setScreen("landing")} />;
 };
 
 export default Index;
