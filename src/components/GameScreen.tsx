@@ -18,6 +18,7 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
   const [activeClueIdx, setActiveClueIdx] = useState(0);
   const [activeCellIdx, setActiveCellIdx] = useState(0);
   const [solvedClues, setSolvedClues] = useState<Set<number>>(new Set());
+  const [hintCells, setHintCells] = useState<Set<string>>(new Set());
   const [hintsUsed, setHintsUsed] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [showCluesPanel, setShowCluesPanel] = useState(false);
@@ -26,7 +27,7 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
   const activeClue = sortedClues[activeClueIdx];
   const activeCells = getCellsForClue(activeClue);
 
-  // Set of locked (solved) cell keys
+  // Set of locked (solved + hint) cell keys
   const lockedCells = useMemo(() => {
     const locked = new Set<string>();
     for (const clue of sortedClues) {
@@ -34,8 +35,10 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
         getCellsForClue(clue).forEach((k) => locked.add(k));
       }
     }
+    // Also lock hint-revealed cells
+    hintCells.forEach((k) => locked.add(k));
     return locked;
-  }, [solvedClues]);
+  }, [solvedClues, hintCells]);
 
   useEffect(() => {
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
@@ -76,10 +79,11 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
         const next = new Map(prev);
         const cellKey = activeCells[activeCellIdx];
 
-        // Don't allow editing locked cells
         if (lockedCells.has(cellKey)) {
-          // Skip to next unlocked cell
           let nextIdx = activeCellIdx + (key === "BACKSPACE" ? -1 : 1);
+          while (nextIdx >= 0 && nextIdx < activeCells.length && lockedCells.has(activeCells[nextIdx])) {
+            nextIdx += key === "BACKSPACE" ? -1 : 1;
+          }
           nextIdx = Math.max(0, Math.min(nextIdx, activeCells.length - 1));
           setActiveCellIdx(nextIdx);
           return prev;
@@ -87,7 +91,6 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
 
         if (key === "BACKSPACE") {
           next.delete(cellKey);
-          // Move back, skipping locked cells
           let ni = activeCellIdx - 1;
           while (ni >= 0 && lockedCells.has(activeCells[ni])) ni--;
           setActiveCellIdx(Math.max(0, ni >= 0 ? ni : activeCellIdx));
@@ -119,7 +122,6 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
           }
         } else {
           let nextIdx = activeCellIdx + 1;
-          // Skip locked cells
           while (nextIdx < activeCells.length && lockedCells.has(activeCells[nextIdx])) nextIdx++;
           if (nextIdx >= activeCells.length) nextIdx = activeCells.length - 1;
           setActiveCellIdx(nextIdx);
@@ -153,33 +155,58 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
     const chars = activeClue.answer.split("");
     for (let i = 0; i < chars.length; i++) {
       if (userInputs.get(activeCells[i]) !== chars[i]) {
+        const cellKey = activeCells[i];
         setUserInputs((prev) => {
           const next = new Map(prev);
-          next.set(activeCells[i], chars[i]);
+          next.set(cellKey, chars[i]);
+          return next;
+        });
+        setHintCells((prev) => {
+          const next = new Set(prev);
+          next.add(cellKey);
           return next;
         });
         setHintsUsed((h) => h + 1);
+
+        // Check if this hint completes the clue
+        setTimeout(() => {
+          setUserInputs((current) => {
+            const allFilled = chars.every((ch, j) => current.get(activeCells[j]) === ch);
+            if (allFilled) {
+              playSuccessSound();
+              const newSolved = new Set(solvedClues);
+              newSolved.add(activeClue.clueNumber);
+              for (const c of sortedClues) {
+                if (!newSolved.has(c.clueNumber) && checkClue(c, current)) {
+                  newSolved.add(c.clueNumber);
+                }
+              }
+              setSolvedClues(newSolved);
+              if (newSolved.size === sortedClues.length) {
+                clearInterval(timerRef.current);
+                playCompleteSound();
+                setTimeout(() => onComplete(elapsed, current), 800);
+              }
+            }
+            return current;
+          });
+        }, 50);
         break;
       }
     }
   };
 
+  // Allow navigating to solved clues too
   const navigateClue = (dir: -1 | 1) => {
-    let idx = activeClueIdx;
-    for (let i = 0; i < sortedClues.length; i++) {
-      idx = (activeClueIdx + dir + sortedClues.length + i * dir) % sortedClues.length;
-      if (idx < 0) idx += sortedClues.length;
-      if (!solvedClues.has(sortedClues[idx]?.clueNumber)) break;
-    }
-    setActiveClueIdx(Math.max(0, Math.min(idx, sortedClues.length - 1)));
+    const idx = (activeClueIdx + dir + sortedClues.length) % sortedClues.length;
+    setActiveClueIdx(idx);
     setActiveCellIdx(0);
   };
 
-  // Responsive cell size: fit grid in available space
   const cellSize = useMemo(() => {
-    const maxW = Math.floor((Math.min(window.innerWidth, 500) - 16) / gridCols);
-    const maxH = Math.floor((window.innerHeight * 0.42) / gridRows);
-    return Math.max(12, Math.min(maxW, maxH, 28));
+    const maxW = Math.floor((Math.min(window.innerWidth, 500) - 8) / gridCols);
+    const maxH = Math.floor((window.innerHeight * 0.40) / gridRows);
+    return Math.max(14, Math.min(maxW, maxH, 32));
   }, []);
 
   const highlightedSet = new Set(activeCells);
@@ -187,8 +214,8 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden">
       {/* Header */}
-      <header className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
-        <h1 className="font-display text-lg font-900 text-gradient-primary sm:text-xl">GenCross</h1>
+      <header className="flex shrink-0 items-center justify-between border-b border-border px-3 py-1.5">
+        <h1 className="font-display text-lg font-900 text-gradient-primary">GenCross</h1>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowCluesPanel(true)}
@@ -196,7 +223,7 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
           >
             All Clues
           </button>
-          <div className="rounded-md bg-secondary px-2.5 py-1 font-display text-xs font-600 text-foreground sm:text-sm">
+          <div className="rounded-md bg-secondary px-2.5 py-1 font-display text-xs font-600 text-foreground">
             ⏱ {formatTime(elapsed)}
           </div>
         </div>
@@ -205,13 +232,13 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
       {/* Grid */}
       <div className="flex shrink grow items-center justify-center overflow-hidden px-1 py-1">
         <div
-          className="mx-auto"
           style={{
             display: "grid",
             gridTemplateColumns: `repeat(${gridCols}, ${cellSize}px)`,
             gridTemplateRows: `repeat(${gridRows}, ${cellSize}px)`,
             gap: "1px",
-            width: `${gridCols * (cellSize + 1) - 1}px`,
+            backgroundColor: "hsl(var(--foreground))",
+            border: "1px solid hsl(var(--foreground))",
           }}
         >
           {Array.from({ length: gridRows }).map((_, r) =>
@@ -222,8 +249,7 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
                 return (
                   <div
                     key={key}
-                    className="bg-foreground/90"
-                    style={{ width: cellSize, height: cellSize }}
+                    style={{ width: cellSize, height: cellSize, backgroundColor: "hsl(var(--foreground) / 0.9)" }}
                   />
                 );
               }
@@ -231,32 +257,35 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
               const isHighlighted = highlightedSet.has(key);
               const isActive = activeCells[activeCellIdx] === key;
               const isLocked = lockedCells.has(key);
+              const isHint = hintCells.has(key);
               const userLetter = userInputs.get(key) || "";
 
               return (
                 <div
                   key={key}
                   onClick={() => handleCellClick(key)}
-                  className={`relative flex cursor-pointer items-center justify-center border transition-colors ${
+                  className={`relative flex cursor-pointer items-center justify-center transition-colors ${
                     isLocked
                       ? "cell-correct"
                       : isActive
-                      ? "cell-active border-2"
+                      ? "cell-active-current"
                       : isHighlighted
                       ? "cell-highlighted"
-                      : "border-border bg-card"
+                      : "bg-card"
                   }`}
-                  style={{ width: cellSize, height: cellSize, fontSize: cellSize * 0.48 }}
+                  style={{ width: cellSize, height: cellSize, fontSize: cellSize * 0.52 }}
                 >
                   {cell.displayNumber && (
                     <span
                       className="absolute left-px top-0 font-display font-700 leading-none text-muted-foreground"
-                      style={{ fontSize: Math.max(6, cellSize * 0.22) }}
+                      style={{ fontSize: Math.max(6, cellSize * 0.24) }}
                     >
                       {cell.displayNumber}
                     </span>
                   )}
-                  <span className="font-display font-700 text-foreground">{userLetter}</span>
+                  <span className={`font-display font-700 ${isHint ? "text-primary" : "text-foreground"}`}>
+                    {userLetter}
+                  </span>
                 </div>
               );
             })
@@ -269,7 +298,7 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
         <div className="flex items-center gap-1.5 px-2 py-1.5">
           <button
             onClick={() => navigateClue(-1)}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-sm text-primary-foreground"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-base font-700 text-primary-foreground"
           >
             ‹
           </button>
@@ -280,7 +309,7 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
           </div>
           <button
             onClick={() => navigateClue(1)}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-sm text-primary-foreground"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-base font-700 text-primary-foreground"
           >
             ›
           </button>

@@ -6,9 +6,9 @@ interface KeyboardProps {
 
 const Keyboard = ({ onKey }: KeyboardProps) => {
   return (
-    <div className="flex flex-col items-center gap-1 px-1 py-1.5">
+    <div className="flex flex-col items-center gap-1.5 px-1 py-2">
       {ROWS.map((row, ri) => (
-        <div key={ri} className="flex gap-[3px]">
+        <div key={ri} className="flex gap-[5px]">
           {row.split("").map((key) => {
             const isBackspace = key === "⌫";
             const isHyphen = key === "-";
@@ -16,12 +16,12 @@ const Keyboard = ({ onKey }: KeyboardProps) => {
               <button
                 key={key}
                 onClick={() => onKey(isBackspace ? "BACKSPACE" : key)}
-                className={`flex items-center justify-center rounded-md border border-border font-display font-600 shadow-soft transition-all active:scale-95 ${
+                className={`flex items-center justify-center rounded-lg border border-border font-display font-600 shadow-soft transition-all active:scale-95 ${
                   isBackspace
-                    ? "bg-accent px-4 py-3 text-base text-accent-foreground"
+                    ? "bg-accent px-5 py-3.5 text-lg text-accent-foreground"
                     : isHyphen
-                    ? "bg-secondary px-4 py-3 text-base text-secondary-foreground"
-                    : "bg-card min-w-[30px] px-2 py-3 text-base text-card-foreground sm:min-w-[36px] sm:px-3"
+                    ? "bg-secondary px-5 py-3.5 text-lg text-secondary-foreground"
+                    : "bg-card min-w-[32px] px-2.5 py-3.5 text-lg text-card-foreground sm:min-w-[38px] sm:px-3"
                 }`}
               >
                 {key}
