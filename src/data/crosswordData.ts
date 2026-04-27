@@ -15,7 +15,7 @@ export const clues: ClueData[] = [
   { clueNumber: 5, clueText: "AI powered web3 marketing platform built on Genlayer", answer: "RALLY", row: 19, col: 5, direction: "across" },
   { clueNumber: 6, clueText: "Highest role on Genlayer server", answer: "SINGULARITY", row: 1, col: 0, direction: "down" },
   { clueNumber: 7, clueText: "Name of GenLayer's current testnet", answer: "BRADBURY", row: 0, col: 4, direction: "down" },
-  { clueNumber: 8, clueText: "Genlayer is the ___ layer for the internet", answer: "INTELLIGENCE", row: 3, col: 18, direction: "down" },
+  { clueNumber: 8, clueText: "Genlayer is the ___ layer for the internet", answer: "INTELLIGENCE", row: 3, col: 19, direction: "down" },
   { clueNumber: 9, clueText: "Randomly chosen validator who proposes a result", answer: "LEADER", row: 12, col: 3, direction: "down" },
   { clueNumber: 10, clueText: "This can be done by any validator within the finality window", answer: "APPEAL", row: 11, col: 12, direction: "across" },
   { clueNumber: 11, clueText: "Intelligent Contracts can perform this type of operations", answer: "NON-DETERMINISTIC", row: 3, col: 0, direction: "across" },
