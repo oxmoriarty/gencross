@@ -135,6 +135,29 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
     [activeClue, activeCellIdx, activeCells, solvedClues, elapsed, onComplete, advanceToNextUnsolved, checkClue, lockedCells]
   );
 
+  useEffect(() => {
+    const handlePhysicalKey = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+
+      if (/^[a-z]$/i.test(event.key)) {
+        event.preventDefault();
+        handleKey(event.key.toUpperCase());
+        return;
+      }
+
+      if (event.key === "Backspace" || event.key === "Delete") {
+        event.preventDefault();
+        handleKey("BACKSPACE");
+      }
+    };
+
+    window.addEventListener("keydown", handlePhysicalKey);
+    return () => window.removeEventListener("keydown", handlePhysicalKey);
+  }, [handleKey]);
+
   const handleCellClick = (cellKey: string) => {
     const idx = activeCells.indexOf(cellKey);
     if (idx >= 0) {
