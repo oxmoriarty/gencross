@@ -8,15 +8,15 @@ export interface ClueData {
 }
 
 export const clues: ClueData[] = [
-  { clueNumber: 1, clueText: "GenLayer's Consensus Mechanism is ____ Democracy", answer: "OPTIMISTIC", row: 13, col: 6, direction: "across" },
-  { clueNumber: 2, clueText: "Equivalence _____", answer: "PRINCIPLE", row: 11, col: 14, direction: "down" },
-  { clueNumber: 3, clueText: "The name of GenLayer's mascot", answer: "MOCHI", row: 15, col: 12, direction: "across" },
-  { clueNumber: 4, clueText: "Intelligent Contracts are written in this language", answer: "PYTHON", row: 17, col: 14, direction: "across" },
-  { clueNumber: 5, clueText: "AI powered web3 marketing platform built on Genlayer", answer: "RALLY", row: 18, col: 11, direction: "across" },
+  { clueNumber: 1, clueText: "GenLayer's Consensus Mechanism is ____ Democracy", answer: "OPTIMISTIC", row: 14, col: 6, direction: "across" },
+  { clueNumber: 2, clueText: "Equivalence _____", answer: "PRINCIPLE", row: 8, col: 14, direction: "down" },
+  { clueNumber: 3, clueText: "The name of GenLayer's mascot", answer: "MOCHI", row: 16, col: 12, direction: "across" },
+  { clueNumber: 4, clueText: "Intelligent Contracts are written in this language", answer: "PYTHON", row: 18, col: 14, direction: "across" },
+  { clueNumber: 5, clueText: "AI powered web3 marketing platform built on Genlayer", answer: "RALLY", row: 19, col: 5, direction: "across" },
   { clueNumber: 6, clueText: "Highest role on Genlayer server", answer: "SINGULARITY", row: 1, col: 0, direction: "down" },
   { clueNumber: 7, clueText: "Name of GenLayer's current testnet", answer: "BRADBURY", row: 0, col: 4, direction: "down" },
-  { clueNumber: 8, clueText: "Genlayer is the ___ layer for the internet", answer: "INTELLIGENCE", row: 3, col: 15, direction: "down" },
-  { clueNumber: 9, clueText: "Randomly chosen validator who proposes a result", answer: "LEADER", row: 11, col: 17, direction: "down" },
+  { clueNumber: 8, clueText: "Genlayer is the ___ layer for the internet", answer: "INTELLIGENCE", row: 3, col: 19, direction: "down" },
+  { clueNumber: 9, clueText: "Randomly chosen validator who proposes a result", answer: "LEADER", row: 12, col: 3, direction: "down" },
   { clueNumber: 10, clueText: "This can be done by any validator within the finality window", answer: "APPEAL", row: 11, col: 12, direction: "across" },
   { clueNumber: 11, clueText: "Intelligent Contracts can perform this type of operations", answer: "NON-DETERMINISTIC", row: 3, col: 0, direction: "across" },
   { clueNumber: 12, clueText: "Intelligent Contracts in GenLayer can interact directly with", answer: "LLMS", row: 0, col: 13, direction: "down" },
@@ -34,14 +34,9 @@ export function buildGrid(): { cells: Map<string, CellData>; gridRows: number; g
   const cells = new Map<string, CellData>();
 
   for (const clue of clues) {
-    const chars = clue.answer.replace(/-/g, "").split("");
     const rawChars = clue.answer.split("");
-    let offset = 0;
     for (let i = 0; i < rawChars.length; i++) {
       const ch = rawChars[i];
-      if (ch === "-") {
-        // Place hyphen in grid too
-      }
       const r = clue.direction === "down" ? clue.row + i : clue.row;
       const c = clue.direction === "across" ? clue.col + i : clue.col;
       const key = `${r},${c}`;

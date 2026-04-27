@@ -5,6 +5,23 @@ function getCtx() {
   return audioCtx;
 }
 
+export function playKeySound() {
+  try {
+    const ctx = getCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "triangle";
+    const now = ctx.currentTime;
+    osc.frequency.setValueAtTime(360, now);
+    gain.gain.setValueAtTime(0.055, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+    osc.start(now);
+    osc.stop(now + 0.06);
+  } catch {}
+}
+
 export function playSuccessSound() {
   try {
     const ctx = getCtx();
@@ -13,15 +30,15 @@ export function playSuccessSound() {
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.type = "sine";
-    gain.gain.value = 0.15;
 
     const now = ctx.currentTime;
-    osc.frequency.setValueAtTime(523, now);
-    osc.frequency.setValueAtTime(659, now + 0.1);
-    osc.frequency.setValueAtTime(784, now + 0.2);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    gain.gain.setValueAtTime(0.14, now);
+    osc.frequency.setValueAtTime(587, now);
+    osc.frequency.setValueAtTime(740, now + 0.08);
+    osc.frequency.setValueAtTime(988, now + 0.18);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
     osc.start(now);
-    osc.stop(now + 0.4);
+    osc.stop(now + 0.34);
   } catch {}
 }
 

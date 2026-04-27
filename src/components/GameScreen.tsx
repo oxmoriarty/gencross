@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { clues, buildGrid, getCellsForClue, type ClueData } from "@/data/crosswordData";
 import Keyboard from "./Keyboard";
 import CluesPanel from "./CluesPanel";
-import { playSuccessSound, playCompleteSound } from "@/utils/sound";
+import { playSuccessSound, playCompleteSound, playKeySound } from "@/utils/sound";
 import { formatTime } from "@/utils/leaderboard";
 
 interface GameScreenProps {
@@ -70,6 +70,8 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
 
   const handleKey = useCallback(
     (key: string) => {
+      playKeySound();
+
       if (solvedClues.has(activeClue.clueNumber)) {
         advanceToNextUnsolved(solvedClues);
         return;
@@ -204,9 +206,9 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
   };
 
   const cellSize = useMemo(() => {
-    const maxW = Math.floor((Math.min(window.innerWidth, 500) - 8) / gridCols);
-    const maxH = Math.floor((window.innerHeight * 0.40) / gridRows);
-    return Math.max(14, Math.min(maxW, maxH, 32));
+    const maxW = Math.floor((Math.min(window.innerWidth, 540) - 24) / gridCols);
+    const maxH = Math.floor((window.innerHeight * 0.44) / gridRows);
+    return Math.max(16, Math.min(maxW, maxH, 36));
   }, []);
 
   const highlightedSet = new Set(activeCells);
@@ -230,8 +232,9 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
       </header>
 
       {/* Grid */}
-      <div className="flex shrink grow items-center justify-center overflow-hidden px-1 py-1">
+      <div className="flex shrink grow items-center justify-center overflow-hidden px-3 py-2">
         <div
+          className="mx-auto"
           style={{
             display: "grid",
             gridTemplateColumns: `repeat(${gridCols}, ${cellSize}px)`,
@@ -257,7 +260,6 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
               const isHighlighted = highlightedSet.has(key);
               const isActive = activeCells[activeCellIdx] === key;
               const isLocked = lockedCells.has(key);
-              const isHint = hintCells.has(key);
               const userLetter = userInputs.get(key) || "";
 
               return (
@@ -266,12 +268,14 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
                   onClick={() => handleCellClick(key)}
                   className={`relative flex cursor-pointer items-center justify-center transition-colors ${
                     isLocked
-                      ? "cell-correct"
+                      ? "cell-correct text-foreground"
                       : isActive
-                      ? "cell-active-current"
+                      ? "cell-active-current text-primary-foreground"
                       : isHighlighted
-                      ? "cell-highlighted"
-                      : "bg-card"
+                      ? "cell-highlighted text-primary-foreground"
+                      : userLetter
+                      ? "cell-filled text-primary-foreground"
+                      : "bg-card text-foreground"
                   }`}
                   style={{ width: cellSize, height: cellSize, fontSize: cellSize * 0.52 }}
                 >
@@ -283,9 +287,7 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
                       {cell.displayNumber}
                     </span>
                   )}
-                  <span className={`font-display font-700 ${isHint ? "text-primary" : "text-foreground"}`}>
-                    {userLetter}
-                  </span>
+                  <span className="font-display font-800">{userLetter}</span>
                 </div>
               );
             })
