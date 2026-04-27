@@ -206,9 +206,9 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
   };
 
   const cellSize = useMemo(() => {
-    const maxW = Math.floor((Math.min(window.innerWidth, 540) - 24) / gridCols);
-    const maxH = Math.floor((window.innerHeight * 0.44) / gridRows);
-    return Math.max(16, Math.min(maxW, maxH, 36));
+    const maxW = Math.floor((Math.min(window.innerWidth, 620) - 28) / gridCols);
+    const maxH = Math.floor((window.innerHeight * 0.49) / gridRows);
+    return Math.max(17, Math.min(maxW, maxH, 38));
   }, []);
 
   const highlightedSet = new Set(activeCells);
@@ -234,14 +234,14 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
       {/* Grid */}
       <div className="flex shrink grow items-center justify-center overflow-hidden px-3 py-2">
         <div
-          className="mx-auto"
+          className="mx-auto overflow-hidden rounded-lg"
           style={{
             display: "grid",
             gridTemplateColumns: `repeat(${gridCols}, ${cellSize}px)`,
             gridTemplateRows: `repeat(${gridRows}, ${cellSize}px)`,
-            gap: "1px",
-            backgroundColor: "hsl(var(--foreground))",
-            border: "1px solid hsl(var(--foreground))",
+            gap: 0,
+            backgroundColor: "hsl(var(--crossword-grid))",
+            border: "1px solid hsl(var(--crossword-grid))",
           }}
         >
           {Array.from({ length: gridRows }).map((_, r) =>
@@ -252,7 +252,8 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
                 return (
                   <div
                     key={key}
-                    style={{ width: cellSize, height: cellSize, backgroundColor: "hsl(var(--foreground) / 0.9)" }}
+                    className="cell-block"
+                    style={{ width: cellSize, height: cellSize }}
                   />
                 );
               }
@@ -270,12 +271,12 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
                     isLocked
                       ? "cell-correct text-foreground"
                       : isActive
-                      ? "cell-active-current text-primary-foreground"
+                      ? "cell-active-current text-foreground"
                       : isHighlighted
-                      ? "cell-highlighted text-primary-foreground"
+                      ? "cell-highlighted text-foreground"
                       : userLetter
-                      ? "cell-filled text-primary-foreground"
-                      : "bg-card text-foreground"
+                      ? "cell-filled text-foreground"
+                      : "cell-playable text-foreground"
                   }`}
                   style={{ width: cellSize, height: cellSize, fontSize: cellSize * 0.52 }}
                 >
