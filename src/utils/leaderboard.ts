@@ -5,6 +5,7 @@ export interface LeaderboardEntry {
 }
 
 const KEY = "gencross_leaderboard";
+export const LEADERBOARD_LIMIT = 100;
 
 export function getLeaderboard(): LeaderboardEntry[] {
   try {
@@ -28,7 +29,7 @@ export function saveScore(username: string, score: number, time: number) {
     lb.push({ username, score, time });
   }
   lb.sort((a, b) => b.score - a.score);
-  localStorage.setItem(KEY, JSON.stringify(lb.slice(0, 50)));
+  localStorage.setItem(KEY, JSON.stringify(lb.slice(0, LEADERBOARD_LIMIT)));
 }
 
 export function calculateScore(timeSec: number, hintsUsed: number): number {

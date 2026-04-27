@@ -1,4 +1,4 @@
-import { getLeaderboard, formatTime, type LeaderboardEntry } from "@/utils/leaderboard";
+import { getLeaderboard, formatTime, LEADERBOARD_LIMIT } from "@/utils/leaderboard";
 import { motion } from "framer-motion";
 
 interface LeaderboardProps {
@@ -6,7 +6,7 @@ interface LeaderboardProps {
 }
 
 const Leaderboard = ({ onBack }: LeaderboardProps) => {
-  const entries = getLeaderboard().slice(0, 10);
+  const entries = getLeaderboard().slice(0, LEADERBOARD_LIMIT);
 
   return (
     <div className="flex min-h-screen flex-col items-center px-4 py-8">
@@ -19,13 +19,13 @@ const Leaderboard = ({ onBack }: LeaderboardProps) => {
           GenCross
         </h1>
         <h2 className="mb-6 text-center font-display text-xl font-600 text-foreground">
-          🏆 Leaderboard
+          🏆 Top 100 Leaderboard
         </h2>
 
         {entries.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground">No scores yet. Be the first!</p>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border shadow-soft">
+          <div className="max-h-[68vh] overflow-auto rounded-xl border border-border shadow-soft">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-secondary">
