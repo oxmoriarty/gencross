@@ -260,7 +260,6 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
               const isHighlighted = highlightedSet.has(key);
               const isActive = activeCells[activeCellIdx] === key;
               const isLocked = lockedCells.has(key);
-              const isHint = hintCells.has(key);
               const userLetter = userInputs.get(key) || "";
 
               return (
@@ -274,7 +273,9 @@ const GameScreen = ({ username, onComplete }: GameScreenProps) => {
                       ? "cell-active-current text-primary-foreground"
                       : isHighlighted
                       ? "cell-highlighted text-primary-foreground"
-                      : "bg-card text-primary-foreground"
+                      : userLetter
+                      ? "cell-filled text-primary-foreground"
+                      : "bg-card text-foreground"
                   }`}
                   style={{ width: cellSize, height: cellSize, fontSize: cellSize * 0.52 }}
                 >
